@@ -1,20 +1,17 @@
 import React from 'react';
-import { Asset } from 'expo-asset';
-import { createAppContainer } from 'react-navigation';
+import { createAppContainer  } from 'react-navigation';
 import { createStackNavigator } from 'react-navigation-stack';
+import i18n from 'i18n-js';
+import Languages from "./util/Languages"
 
 
-console.disableYellowBox = true;
 
-function cacheImages(images) {
-  return images.map(image => {
-    if (typeof image === 'string') {
-      return Image.prefetch(image);
-    } else {
-      return Asset.fromModule(image).downloadAsync();
-    }
-  });
-}
+console.disableYellowBox = true; //development purposes
+//setting language settings
+i18n.fallbacks = true;
+i18n.translations = Languages;
+i18n.defaultLocale = 'en';
+
 
 export default class App extends React.PureComponent {
   constructor(props){
@@ -33,10 +30,9 @@ export default class App extends React.PureComponent {
     const MainStack = createStackNavigator(
       { 
         MainScreen: MainScreen,
-        MenuScreen: MenuScreen,
         ShuttleScreen: ShuttleScreen,
-        FeedBackForm: FeedBackForm
-
+        HomePage: HomePage,
+        MapView: MapView,
       },
       {
         initialRouteName: "MainScreen",
@@ -54,9 +50,10 @@ export default class App extends React.PureComponent {
 
 
 //screens_mobile
-import MenuScreen from "./screens/MenuScreen"
 import MainScreen from "./screens/MainScreen"
 import ShuttleScreen from "./screens/ShuttleScreen"
-import FeedBackForm from "./screens/FeedBackForm"
+import HomePage from "./screens/HomePage"
+import MapView from "./screens/MapView"
+
 
 

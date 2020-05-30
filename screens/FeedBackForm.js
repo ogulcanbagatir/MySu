@@ -1,11 +1,11 @@
 import React from 'react';
-import { View,KeyboardAvoidingView, Platform, Text, Dimensions, StyleSheet, Easing, Animated, StatusBar, FlatList, TouchableOpacity, Image } from 'react-native';
+import { View,KeyboardAvoidingView, Text, Dimensions, StyleSheet, TouchableOpacity,Keyboard } from 'react-native';
 import * as Device from 'expo-device';
 import Constants from "expo-constants";
 import Colors from "../util/Colors";
-import { Feather } from '@expo/vector-icons';
 import {AntDesign} from '@expo/vector-icons';
 import { TextInput } from 'react-native-gesture-handler';
+import i18n from 'i18n-js';
 
 
 const SCREEN_WIDTH = Dimensions.get("window").width
@@ -21,20 +21,41 @@ export default class FeedBackForm extends React.Component {
       this.rate = 0
       this.state = {
         comment: "",
-        isChecked: [false,false,false,false,false]
+        isChecked: [false,false,false,false,false] //to check wheter any stars clicked
       }
     }
 
+    //getting device info
     componentDidMount(){
       this.checkDevice()
     }
-    submit = () =>{
-      console.log("DEVICE TYPE: " + deviceType)
-      console.log("DEVICE NAME: " + deviceName)
-      console.log("COMMENT: " + this.state.comment)
-      console.log("RATE: " + this.rate)
+
+    //rerendering after language change
+    updateScreen = () => {
+      this.setState({state: this.state})
     }
-    checkDevice() {
+    
+    //sending data to server
+    submit = () =>{
+      let data = {
+        deviceType: deviceType,
+        deviceName: deviceName,
+        comment: this.state.comment,
+        rate: this.rate
+      }
+      fetch("https://postman-echo.com/post", {  
+        method: "POST",
+        body:  JSON.stringify(data)
+      })
+      .then(function(response){ 
+      return response.json();   
+      })
+      .then(function(data){ 
+      console.log(data)
+      })
+      Keyboard.dismiss()
+    }
+    checkDevice() {                       
       Device.getDeviceTypeAsync().then((response) => {
         deviceType =  Device.DeviceType[response]
         deviceName = Device.deviceName
@@ -60,25 +81,15 @@ export default class FeedBackForm extends React.Component {
 
     render(){
       return(
-        <View style = {styles.container}>
-          <View style={styles.header}>
-            <TouchableOpacity style={{width:44,height:"100%",alignItems:"center",justifyContent:"center",marginTop:Constants.statusBarHeight*0.5}} onPress={()=>this.props.navigation.goBack()}>
-              <Feather name={"chevron-left"} size={20} />
-            </TouchableOpacity>
-            <Text style={{fontSize:18,fontWeight:"600",marginTop:Constants.statusBarHeight*0.5,flex:1,textAlign:"center"}}>
-              FeedBackForm
+        <KeyboardAvoidingView style = {styles.container}  behavior={"padding"}>
+          <View style={styles.boxContainer}>
+            <Text style={{fontSize:20,fontWeight:"600",color:Colors.blueDark.alpha1,paddingTop:10}}>
+              {i18n.t("rate")}
             </Text>
-            <View style={{width:44,height:"100%"}}>
-            </View>
-          </View>
-          <KeyboardAvoidingView style={styles.boxContainer} behavior={"padding"}>
-            <Text style={{fontSize:20,fontWeight:"600",color:Colors.blueDark.alpha1}}>
-              Rate MySu
-            </Text>
-            <View style={{flexDirection:"row",marginTop:30}}>
+            <View style={{flexDirection:"row",marginTop:16}}>
               {this.state.isChecked.map((item,index) => {
                 return(
-                  <TouchableOpacity onPress={()=> this.starClicked(index)} activeOpacity={1} >
+                  <TouchableOpacity key={index+"a"} onPress={()=> this.starClicked(index)} activeOpacity={1} >
                     <AntDesign name={ this.state.isChecked[index] ? "star" : "staro"} size={20} color={Colors.blue.alpha1}/>
                   </TouchableOpacity>
                 )
@@ -86,17 +97,19 @@ export default class FeedBackForm extends React.Component {
             </View>
             <TextInput 
               style={styles.inputBox}
-              placeholder={"Please leave a comment."}
+              placeholder={i18n.t("comment")}
               onChangeText={(text)=>this.setState({comment: text})}
               multiline={true}
+              autoCompleteType={"off"}
+              autoCorrect={false}
             />
             <TouchableOpacity style={styles.submitButton} activeOpacity={0.8} onPress={this.submit}>
               <Text style={{fontSize:20,fontWeight:"500",color:Colors.blueDark.alpha1}}>
-                Submit
+                {i18n.t("submit")}
               </Text>
             </TouchableOpacity>
-          </KeyboardAvoidingView>
-        </View>
+          </View>
+        </KeyboardAvoidingView>
       )
     }
     
@@ -110,13 +123,6 @@ const styles = StyleSheet.create({
   header:{
     height: Constants.statusBarHeight + 64,
     width:SCREEN_WIDTH,
-    borderWidth: 1,
-    borderColor: Colors.gray,
-    shadowColor: Colors.black.alpha1,
-    shadowOffset: {width: 0, height: 5},
-    shadowRadius: 7,
-    shadowOpacity: 0.05,
-    borderRadius:10,
     alignItems:"center",
     justifyContent:"space-evenly",
     flexDirection:"row"
@@ -133,7 +139,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     height:150,
     width:"80%",
-    marginTop:30,
+    marginTop:16,
     paddingTop:20,
   },
   boxContainer:{
@@ -141,16 +147,16 @@ const styles = StyleSheet.create({
     height:"70%",
     alignItems:"center",
     justifyContent:"center",
+    paddingTop:16
   },
   submitButton:{
     width:SCREEN_WIDTH*0.4,
     height:64,
     backgroundColor: Colors.white.alpha1,
     borderRadius:10,
-    marginTop:20,
+    marginTop:16,
     alignItems:"center",
     justifyContent:"center",
-    marginBottom:50
   }
 
   });

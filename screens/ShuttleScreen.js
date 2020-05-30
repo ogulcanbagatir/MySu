@@ -1,6 +1,9 @@
 import React from 'react';
-import { View, Text, Dimensions, StyleSheet, Easing, Animated, FlatList, TouchableOpacity, Image, ActivityIndicator,AppState } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import { View, Text, Dimensions, StyleSheet, Animated, FlatList, TouchableOpacity, ActivityIndicator,AppState } from 'react-native';
+import { Feather,FontAwesome5 } from '@expo/vector-icons';
+import Colors from "../util/Colors";
+import i18n from 'i18n-js';
+
 
 const SCREEN_WIDTH = Dimensions.get("window").width
 const SCREEN_HEIGHT = Dimensions.get("window").height
@@ -55,16 +58,23 @@ export default class ShuttleScreen extends React.PureComponent {
     componentDidMount(){
       this.fetchData()
       AppState.addEventListener('change', this._handleAppStateChange);
-		  this.updateRedMark(true);
+      this.updateRedMark(true);
+      
     }  
-
-    componentWillUnmount(){
-      if(this.redMarkTimeout !== null){
+    //to render screen when language changed
+    updateScreen = () => { 
+      this.setState({state: this.state})
+    }
+    
+    //clearing timeout 
+    componentWillUnmount(){ 
+      if(this.redMarkTimeout !== null){  
         clearTimeout(this.redMarkTimeout);
       }
       AppState.removeEventListener('change', this._handleAppStateChange);
     }
 
+    //get current time
     setCurrentTime(){
       const rightNow = new Date()
       const currentHour = rightNow.getHours()
@@ -74,13 +84,12 @@ export default class ShuttleScreen extends React.PureComponent {
       }else{
         currentTime = new Date(currentYear,currentMonth,currentDay,currentHour,currentMinute).getTime()
       }
-      
     }
 
-    updateRedMark = (shouldRepeat) => {
+    updateRedMark = (shouldRepeat) => { //check every minute wheter there is a new closest shuttle
       const now = new Date();
       if(shouldRepeat === true){
-        const timeoutSecond = 61 - now.getSeconds();
+        const timeoutSecond = 70 - now.getSeconds();
         
         this.redMarkTimeout = setTimeout(()=>{
           this.updateRedMark(true);
@@ -91,7 +100,7 @@ export default class ShuttleScreen extends React.PureComponent {
       this.closestShuttle()
     }
 
-    _handleAppStateChange = (nextAppState) => {
+    _handleAppStateChange = (nextAppState) => {  //to check wheter the app come front and new closest shuttle
       if (this.appState.match(/inactive|background/) && nextAppState === 'active') {
         this.updateRedMark(false);
       }
@@ -112,7 +121,6 @@ export default class ShuttleScreen extends React.PureComponent {
           this.shuttleArr.push(this.state.shuttles.routes[key])
         }
         this.closestShuttle()
-        console.log(this.state.shuttles)
     }
 
     animatePopUp = (value) => {
@@ -123,7 +131,8 @@ export default class ShuttleScreen extends React.PureComponent {
         }).start()
       }
 
-    closestShuttle(){
+    //finding closest shuttle
+    closestShuttle = () => { 
       let fc = []
       let tc = []
       this.setCurrentTime()
@@ -164,7 +173,8 @@ export default class ShuttleScreen extends React.PureComponent {
       }
       this.setState({closest: this.closestShuttles,change: !this.state.change})
     }
-    convertToDate(obj){
+
+    convertToDate(obj){           //converting string object from API to date
       let h = obj.hour.slice(0,2)
       let m = obj.hour.slice(3,5)
       let d;
@@ -178,7 +188,7 @@ export default class ShuttleScreen extends React.PureComponent {
       return t
     }
 
-    compareHours = (a,b) => { 
+    compareHours = (a,b) => {           //comparing hours 
       let hour1 = a.hour.slice(0,2)
       let min1 = a.hour.slice(3,5)
 
@@ -203,7 +213,8 @@ export default class ShuttleScreen extends React.PureComponent {
       return firstTime - secondTime
     }
 
-    getShuttleHours(item,day){
+    //getting shuttle hours 
+    getShuttleHours = (item,day) => {         
       let fromCampus = []
       let toCampus = []
       let keys = []
@@ -269,7 +280,12 @@ export default class ShuttleScreen extends React.PureComponent {
         return obj
       }
     }
-    changeHeight(index){
+    //sending data with callback to another component
+    sendData = (item) => {
+      this.props.parentCallback(item)
+    }
+
+    changeHeight = (index) =>{
       this.isExpand[index] = !this.isExpand[index]
       if(this.prevExpanded === null){
         this.prevExpanded = index
@@ -286,6 +302,7 @@ export default class ShuttleScreen extends React.PureComponent {
       this.descsArr = []
       this.setState({change: !this.state.change})
     }
+    
     setHour(item,index){
       if(!this.switched[index]){
         this.weekdays = this.getShuttleHours(item,"weekdays").from_camp
@@ -301,6 +318,7 @@ export default class ShuttleScreen extends React.PureComponent {
       let obj = {w: this.weekdays, sat: this.saturday, sun: this.sunday}
       this.descsArr.push(obj)
     }
+
     descPressed(index,day){
       if(day === "weekdays"){
         this.setState({descText: this.descsArr[this.prevExpanded].w[index].descs},()=>{this.animatePopUp(1)})
@@ -310,22 +328,21 @@ export default class ShuttleScreen extends React.PureComponent {
         this.setState({descText: this.descsArr[this.prevExpanded].sun[index].descs },()=>{this.animatePopUp(1)})
       }
     }
+
     renderItem({item,index}){
-      this.switched.push(false)
       this.setHour(item,index)
-      this.isExpand.push(false)
       return(
         <View style={{paddingVertical:SCREEN_WIDTH*0.03}}>
-          <TouchableOpacity onPress={()=>this.changeHeight(index)} activeOpacity={0.8}>
+          <TouchableOpacity onPress={() => this.changeHeight(index)} activeOpacity={0.8}>
             <View style={styles.shuttleRow}>
               <View style={{flex:1,justifyContent:"center",alignItems:"center"}}>
-                <Feather name={"home"} size={iconSize} />
+                <FontAwesome5 name={"home"} size={iconSize} color={Colors.dark8}/>
                 <Text style={{marginTop:5}}>
                   {this.state.closest[0][index]}   
                 </Text>
               </View>
               <View style={{flex:2,alignItems:"center",paddingVertical:10}}>
-                <Text style={{fontWeight:"400",fontSize:16}}>
+                <Text style={{fontWeight:"400",fontSize:16}} >
                   {item.ROUTE_NAME_TR}
                 </Text>
                 <View style={{flexDirection:"row",alignItems:"center"}}>
@@ -334,11 +351,11 @@ export default class ShuttleScreen extends React.PureComponent {
                   <View style={styles.circle}/>
                 </View>
                 <Text style={{fontSize:12,color:"rgba(101, 109, 120, .8)"}}>
-                  Upcoming hours
+                  {i18n.t("upcomingHours")}
                 </Text>
               </View>
               <View style={{flex:1,justifyContent:"center",alignItems:"center"}}>
-                <Feather name={"map"} size={iconSize} />
+                <FontAwesome5 name={"city"} size={iconSize} color={Colors.dark8}/>
                 <Text style={{marginTop:5}}>
                   {this.state.closest[1][index]}  
                 </Text>
@@ -348,10 +365,12 @@ export default class ShuttleScreen extends React.PureComponent {
           <View style={{height: this.isExpand[index] === true ? null : 0, overflow:"hidden"}} > 
             <View style={styles.grayView}>
                 <Text>
-                  {!this.switched[index] ? "Campus > " + item.ROUTE_NAME_TR : item.ROUTE_NAME_TR + " > Campus"}
+                  {!this.switched[index] ? i18n.t("campus") + " > " + item.ROUTE_NAME_TR : item.ROUTE_NAME_TR + " > " + i18n.t("campus")}
                 </Text>
                 <View style={{flexDirection:"row"}}>
-                  <Feather name={"map-pin"} size={18} style={{marginRight:10}}/>
+                  <TouchableOpacity onPress={()=>this.sendData(item.stops)} activeOpacity={0.9}>
+                    <Feather name={"map-pin"} size={18} style={{marginRight:10}}/>
+                  </TouchableOpacity>
                   <TouchableOpacity onPress={()=>this.switchRoutes(index)}>
                     <Feather name={"repeat"} size={18}/>
                   </TouchableOpacity>
@@ -362,11 +381,16 @@ export default class ShuttleScreen extends React.PureComponent {
                 <Text style={{fontSize:15,marginBottom:5}}>
                   {item.hours.weekdays.DAY_TEXT.toUpperCase()}
                 </Text>
-                {this.weekdays.map((item,index)  => {
+                {this.weekdays.length === 0 ? 
+                  <Text style={{color:Colors.redDark.alpha1,fontSize:14,textAlign:"center",marginTop:5}}>
+                    {i18n.t("shuttleNot")}
+                  </Text> 
+                :
+                this.weekdays.map((item,index)  => {
                   return(
                     <View style={{flexDirection:"row",alignItems:"center"}} key = {"a" + index}>
                       <Text style={{marginVertical:5,marginRight:3 ,color: (closestShuttle == item.hour && currentDay !== 6 && currentDay !== 0 ) ? 'rgba(93, 156, 236, 1.0)' : "black"}}>
-                      {item.hour}
+                        {item.hour}
                       </Text>
                       <TouchableOpacity style={{flexDirection:"row"}} onPress={()=>this.descPressed(index,"weekdays")}>
                         {item.descs.map((item,index) => {
@@ -383,10 +407,15 @@ export default class ShuttleScreen extends React.PureComponent {
               </View>
               <View style={styles.verticalSeperator}/>
               <View style={styles.dayColumn}>
-                <Text style={{fontSize:15,marginBottom:5}}>
+                <Text style={{fontSize:15, marginBottom:5}}>
                   {item.hours.saturday.DAY_TEXT.toUpperCase()}
                 </Text>
-                {this.saturday.map((item,index) => {
+                {this.saturday.length === 0 ? 
+                <Text style={{color:Colors.redDark.alpha1,fontSize:14,textAlign:"center",marginTop:5}}>
+                  {i18n.t("shuttleNot")}
+                </Text>
+                :
+                this.saturday.map((item,index) => {
                   return(
                     <View style={{flexDirection:"row",alignItems:"center"}} key={"o" + index}>
                       <Text style={{marginVertical:5,marginRight:3 ,color: (closestShuttle === item.hour && currentDay === 6 ) ? 'rgba(93, 156, 236, 1.0)' : "black"}}>
@@ -412,7 +441,12 @@ export default class ShuttleScreen extends React.PureComponent {
                 <Text style={{fontSize:15,marginBottom:5}}>
                   {item.hours.sunday.DAY_TEXT.toUpperCase()}
                 </Text>
-                  {this.sunday.map((item,index) => {
+                  {this.sunday.length === 0 ? 
+                  <Text style={{color:Colors.redDark.alpha1,fontSize:14,textAlign:"center",marginTop:5}}>
+                    {i18n.t("shuttleNot")}
+                  </Text>
+                  :
+                  this.sunday.map((item,index) => {
                     return(
                       <View style={{flexDirection:"row",alignItems:"center"}} key={"sunday" + index}>
                         <Text style={{marginVertical:5,marginRight:3 ,color: (closestShuttle === item.hour && currentDay === 0 ) ? 'rgba(93, 156, 236, 1.0)' : "black"}}>
@@ -436,17 +470,10 @@ export default class ShuttleScreen extends React.PureComponent {
         </View>
       )
     }
-
     render(){
       if(!this.state.loading){
         return(
           <View style = {styles.container}>
-            <View style={styles.header}>
-              <Text style={styles.headerText}>
-                Shuttle
-              </Text>
-              <Feather name={"search"} size={iconSize} style={{marginRight:SCREEN_WIDTH*0.05}}/>
-            </View>
             <FlatList
               data={this.shuttleArr}
               style={styles.list}
@@ -548,12 +575,12 @@ const styles = StyleSheet.create({
     paddingVertical:15
   },
   popUp:{
-    position:"absolute",
-    borderRadius:10,
+    borderRadius: 10,
     height:SCREEN_WIDTH * 0.6,
-    width:SCREEN_WIDTH,
+    width:SCREEN_WIDTH * 0.9,
     backgroundColor:"white",
-    padding:20
+    padding: 20,
+
   },
   p:{
     position:"absolute",
@@ -561,7 +588,10 @@ const styles = StyleSheet.create({
     height:SCREEN_HEIGHT,
     backgroundColor:'rgba(101, 109, 120, .8)',
     top:SCREEN_HEIGHT,
-    justifyContent:"flex-end"
+    justifyContent:"center",
+    paddingBottom:SCREEN_WIDTH *0.2,
+    alignItems:"center"
+
   }
 
   });
